@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart rate monitor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* 心率监测页面特定样式 */
+        .heart-rate-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            height: 100%;
+        }
+        
+        .heart-rate-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            height: 300px;
+        }
+        
+        .current-heart-rate {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background-color: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-right: 30px;
+        }
+        
+        /* 从index.html导入的心跳动画样式 */
+        @import url('https://fonts.googleapis.com/css2?family=Young+Serif&display=swap');
+
+        :root {
+            --heart-speed: 1s
+        }
+        
+        .heart {
+            height: 30px;
+            width: 30px;
+            background: #f20044;
+            position: relative;
+            transform: rotate(-45deg) translate(-4px, 4px);
+            box-shadow: -10px 10px 90px #f20044;
+            animation: heart var(--heart-speed) linear infinite;
+            margin: 20px;
+        }
+
+        #heart-rate-number {
+            font-size: 50px;
+            font-family: 'Young Serif', serif;
+            vertical-align: text-top;
+            color: #f20044;
+            text-shadow:
+                #f20044 0px 0px 10px,
+                #f20044 0px 0px 20px;
+        }
+
+        @keyframes heart {
+            0% {
+                transform: rotate(-45deg) scale(1.07) translate(-4px, 4px);
+            }
+
+            80% {
+                transform: rotate(-45deg) scale(1) translate(-4px, 4px);
+            }
+
+            100% {
+                transform: rotate(-45deg) scale(0.9) translate(-4px, 4px);
+            }
+        }
+
+        .heart::before {
+            content: "";
+            position: absolute;
+            height: 30px;
+            width: 30px;
+            background: #f20044;
+            top: -50%;
+            border-radius: 40px;
+            box-shadow: -5px -5px 50px #f20044;
+        }
+
+        .heart::after {
+            content: "";
+            position: absolute;
+            height: 30px;
+            width: 30px;
+            background: #f20044;
+            right: -50%;
+            border-radius: 40px;
+            box-shadow: 5px 5px 50px #f20044;
+        }
+        
+        .rate-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
+        
+        .chart-container {
+            flex: 1;
+            height: 100%;
+            min-width: 0;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .control-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #0abb40;
+            color: white;
+        }
+        
+        .control-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        .control-btn:active {
+            transform: translateY(0);
+        }
+        
+        .status-message {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .stats-table {
+            width: 100%;
+            margin-top: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .stats-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .stats-table th, .stats-table td {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        .stats-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stats-table td {
+            color: #666;
+        }
+
+        .max-rate {
+            color: #f20044 !important;
+            font-weight: bold;
+        }
+
+        .min-rate {
+            color: #0abb40 !important;
+            font-weight: bold;
+        }
+
+        .avg-rate {
+            color: #1a73e8 !important;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <header class="top-bar">
+        <div class="top-bar-content">
+            <button class="back-btn" onclick="window.location.href='{{ url_for('dashboard') }}'">
+                <span>←</span> Back
+            </button>
+            <h1>CareLink — Wearable Interface for Real-Time Health Monitoring</h1>
+        </div>
+    </header>
+
+    <div class="dashboard-container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="{{ url_for('connect') }}" class="nav-link">
+                        <span class="nav-icon">🔗</span> Connect the Bracelet
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('heart_rate') }}" class="nav-link active">
+                        <span class="nav-icon">❤️</span> Heart Rate Monitoring
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('steps') }}" class="nav-link">
+                        <span class="nav-icon">👣</span> Steps Counting
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('sleep') }}" class="nav-link">
+                        <span class="nav-icon">😴</span> Sleep Monitoring
+                    </a>
+                </li>
+                <!-- 新增 AI Chat 菜单项 -->
+                <li class="nav-item">
+                    <a href="{{ url_for('chat') }}" class="nav-link">
+                        <span class="nav-icon">💬</span> AI Chat
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 主要内容区域 -->
+        <main class="main-content">
+            <div class="heart-rate-container">
+                <h2>Heart Rate Monitoring</h2>
+                
+                <div class="heart-rate-display">
+                    <div class="current-heart-rate">
+                        <!-- 替换为index.html中的心跳动画 -->
+                        <div id="heart" class="heart"></div>
+                        <div id="heart-rate-number">--</div>
+                        <div class="rate-label">BPM</div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <canvas id="heartRateChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="stats-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="max-rate" id="maxRate">--</td>
+                                <td class="min-rate" id="minRate">--</td>
+                                <td class="avg-rate" id="avgRate">--</td>
+                                <td id="duration">0:00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="controls">
+                    <button class="control-btn" id="startMonitoringBtn">Start Monitoring</button>
+                    <button class="control-btn" id="stopMonitoringBtn" disabled>Stop Monitoring</button>
+                </div>
+                
+                <div class="status-message" id="statusMessage">
+                    Status: Not started monitoring
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 只修改JavaScript部分 -->
+<script>
+    // 图表初始化
+    const ctx = document.getElementById('heartRateChart').getContext('2d');
+    const heartRateChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Heart Rate (BPM)',
+                data: [],
+                borderColor: '#f20044',
+                backgroundColor: 'rgba(242, 0, 68, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    min: 40,
+                    max: 180,
+                    title: {
+                        display: true,
+                        text: 'Heart Rate (BPM)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+    
+    // 全局变量
+    let monitoringInterval;
+    let dataPoints = [];
+    const maxDataPoints = 20; // 最多显示的数据点数量
+    let startTime = null;
+    let heartRateStats = {
+        max: 0,
+        min: Infinity,
+        sum: 0,
+        count: 0
+    };
+    
+    // 从index.html导入的心率设置函数
+    function setHeartRate(heartRate) {
+        document.documentElement.style.setProperty('--heart-speed', (60 / heartRate) + 's');
+        document.getElementById('heart-rate-number').innerText = heartRate;
+    }
+    
+    // 开始监测按钮
+    document.getElementById('startMonitoringBtn').addEventListener('click', function() {
+        const statusMessage = document.getElementById('statusMessage');
+        statusMessage.textContent = 'Status: Connecting to heart rate service...';
+        
+        // 更新按钮状态
+        document.getElementById('startMonitoringBtn').disabled = true;
+        document.getElementById('stopMonitoringBtn').disabled = false;
+        
+        // 开始定时获取心率数据
+        monitoringInterval = setInterval(fetchHeartRateData, 1000);
+        
+        statusMessage.textContent = 'Status: Monitoring heart rate...';
+    });
+    
+    // 停止监测按钮
+    document.getElementById('stopMonitoringBtn').addEventListener('click', function() {
+        const statusMessage = document.getElementById('statusMessage');
+        
+        // 清除定时器
+        clearInterval(monitoringInterval);
+        
+        // 更新按钮状态
+        document.getElementById('startMonitoringBtn').disabled = false;
+        document.getElementById('stopMonitoringBtn').disabled = true;
+        
+        statusMessage.textContent = 'Status: Stopped monitoring';
+        
+        // 重置统计数据
+        startTime = null;
+        heartRateStats = {
+            max: 0,
+            min: Infinity,
+            sum: 0,
+            count: 0
+        };
+    });
+    
+    // 从API获取心率数据
+    async function fetchHeartRateData() {
+        try {
+            // 使用Flask应用提供的/heartrate端点
+            const response = await fetch('/heartrate');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            
+            // 获取心率值
+            const heartRate = Number(await response.text());
+            
+            // 更新显示
+            updateHeartRateDisplay(heartRate);
+            
+            console.log("Heart Rate:", heartRate);
+        } catch (error) {
+            console.error("Error fetching heart rate:", error);
+            document.getElementById('statusMessage').textContent = 'Status: Failed to get data, please check connection';
+            
+            // 使用模拟数据
+            const mockHeartRate = Math.floor(Math.random() * 30) + 60;
+            updateHeartRateDisplay(mockHeartRate);
+        }
+    }
+    
+    // 更新心率显示
+    function updateHeartRateDisplay(heartRate) {
+        // 更新心率统计
+        if (startTime === null) {
+            startTime = new Date();
+        }
+        
+        // 更新统计数据
+        heartRateStats.max = Math.max(heartRateStats.max, heartRate);
+        heartRateStats.min = Math.min(heartRateStats.min, heartRate);
+        heartRateStats.sum += heartRate;
+        heartRateStats.count++;
+        
+        // 计算平均值
+        const avgRate = Math.round(heartRateStats.sum / heartRateStats.count);
+        
+        // 计算监测时长
+        const currentTime = new Date();
+        const durationInSeconds = Math.floor((currentTime - startTime) / 1000);
+        const minutes = Math.floor(durationInSeconds / 60);
+        const seconds = durationInSeconds % 60;
+        const durationString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        // 更新统计表格
+        document.getElementById('maxRate').textContent = heartRateStats.max;
+        document.getElementById('minRate').textContent = 
+            heartRateStats.min === Infinity ? '--' : heartRateStats.min;
+        document.getElementById('avgRate').textContent = avgRate;
+        document.getElementById('duration').textContent = durationString;
+        
+        // 原有的心率显示更新代码
+        setHeartRate(heartRate);
+        
+        // 获取当前时间
+        const now = new Date();
+        const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
+                          now.getMinutes().toString().padStart(2, '0') + ':' + 
+                          now.getSeconds().toString().padStart(2, '0');
+        
+        // 更新图表数据
+        dataPoints.push({
+            time: timeString,
+            value: heartRate
+        });
+        
+        // 限制数据点数量
+        if (dataPoints.length > maxDataPoints) {
+            dataPoints.shift();
+        }
+        
+        // 更新图表
+        heartRateChart.data.labels = dataPoints.map(point => point.time);
+        heartRateChart.data.datasets[0].data = dataPoints.map(point => point.value);
+        heartRateChart.update();
+    }
+</script>
+
+
+</body>
+</html>
+

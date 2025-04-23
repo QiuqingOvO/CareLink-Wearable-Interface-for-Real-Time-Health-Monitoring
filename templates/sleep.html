@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Monitoring System - Sleep Monitoring</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Sleep monitoring page specific styles */
+        .sleep-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            height: 100%;
+        }
+        
+        .sleep-overview {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .sleep-card {
+            flex: 1;
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 150px;
+        }
+        
+        .sleep-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .sleep-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .sleep-label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .sleep-chart-container {
+            flex: 1;
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            min-height: 400px;
+        }
+        
+        .sleep-chart-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .sleep-controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .control-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #0abb40;
+            color: white;
+        }
+        
+        .control-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        .control-btn:active {
+            transform: translateY(0);
+        }
+        
+        .status-message {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .sleep-quality {
+            display: flex;
+            align-items: center;
+            margin-top: 5px;
+        }
+        
+        .quality-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .quality-text {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .quality-good {
+            background-color: #52c41a;
+        }
+        
+        .quality-fair {
+            background-color: #faad14;
+        }
+        
+        .quality-poor {
+            background-color: #ff4d4f;
+        }
+        
+        .sleep-phases {
+            width: 100%;
+            height: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .phase-deep {
+            height: 100%;
+            background-color: #722ed1;
+        }
+        
+        .phase-light {
+            height: 100%;
+            background-color: #1890ff;
+        }
+        
+        .phase-rem {
+            height: 100%;
+            background-color: #13c2c2;
+        }
+        
+        .phase-awake {
+            height: 100%;
+            background-color: #faad14;
+        }
+        
+        /* Day detail modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow: auto;
+        }
+        
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            width: 80%;
+            max-width: 600px;
+            position: relative;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+        }
+        
+        .close-btn:hover {
+            color: #333;
+        }
+        
+        .day-detail-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+        
+        .day-detail-date {
+            font-size: 24px;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        
+        .day-detail-summary {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .day-detail-item {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .detail-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .detail-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .sleep-timeline {
+            height: 80px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .timeline-hour {
+            position: absolute;
+            bottom: 0;
+            font-size: 10px;
+            color: #999;
+        }
+        
+        .sleep-segment {
+            position: absolute;
+            height: 40px;
+            top: 10px;
+            border-radius: 3px;
+        }
+        
+        .segment-deep {
+            background-color: #722ed1;
+        }
+        
+        .segment-light {
+            background-color: #1890ff;
+        }
+        
+        .segment-rem {
+            background-color: #13c2c2;
+        }
+        
+        .segment-awake {
+            background-color: #faad14;
+        }
+        
+        .timeline-legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            margin-right: 5px;
+        }
+        
+        .day-detail-notes {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top navigation bar -->
+    <header class="top-bar">
+        <div class="top-bar-content">
+            <button class="back-btn" onclick="window.location.href='{{ url_for('dashboard') }}'">
+                <span>←</span> Back
+            </button>
+            <h1>CareLink — Wearable Interface for Real-Time Health Monitoring</h1>
+        </div>
+    </header>
+
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="{{ url_for('connect') }}" class="nav-link">
+                        <span class="nav-icon">🔗</span> Connect the Bracelet
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('heart_rate') }}" class="nav-link">
+                        <span class="nav-icon">❤️</span> Heart Rate Monitoring
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('steps') }}" class="nav-link">
+                        <span class="nav-icon">👣</span> Steps Counting
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('sleep') }}" class="nav-link active">
+                        <span class="nav-icon">😴</span> Sleep Monitoring
+                    </a>
+                </li>
+                <!-- 新增 AI Chat 菜单项 -->
+                <li class="nav-item">
+                    <a href="{{ url_for('chat') }}" class="nav-link">
+                        <span class="nav-icon">💬</span> AI Chat
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Main content area -->
+        <main class="main-content">
+            <div class="sleep-container">
+                <h2>Sleep Monitoring</h2>
+
+                <!-- 新增上传CSV按钮 -->
+            <div style="text-align:center;">
+                    <input type="file" id="csvUploadSleep" accept=".csv">
+                    <button class="btn login-btn" onclick="uploadCSVSleep()">Upload CSV</button>
+            </div>
+                
+                <!-- Sleep overview cards -->
+                <div class="sleep-overview">
+                    <div class="sleep-card">
+                        <div class="sleep-icon">😴</div>
+                        <div class="sleep-value" id="sleepDuration">0h 0m</div>
+                        <div class="sleep-label">Last Night's Sleep</div>
+                        <div class="sleep-quality">
+                            <div class="quality-indicator" id="qualityIndicator"></div>
+                            <div class="quality-text" id="qualityText">No data</div>
+                        </div>
+                    </div>
+                    
+                    <div class="sleep-card">
+                        <div class="sleep-icon">🌙</div>
+                        <div class="sleep-value" id="deepSleep">0h 0m</div>
+                        <div class="sleep-label">Deep Sleep</div>
+                        <div class="sleep-phases">
+                            <div class="phase-deep" id="phaseDeep" style="width: 25%"></div>
+                            <div class="phase-light" id="phaseLight" style="width: 45%"></div>
+                            <div class="phase-rem" id="phaseRem" style="width: 20%"></div>
+                            <div class="phase-awake" id="phaseAwake" style="width: 10%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="sleep-card">
+                        <div class="sleep-icon">⏰</div>
+                        <div class="sleep-value" id="sleepScore">0</div>
+                        <div class="sleep-label">Sleep Score</div>
+                    </div>
+                </div>
+                
+                <!-- Sleep chart -->
+                <div class="sleep-chart-container">
+                    <div class="sleep-chart-title">Sleep Duration for the Last Week (Hours) - Click on any day for details</div>
+                    <canvas id="sleepChart"></canvas>
+                </div>
+                
+                <div class="status-message" id="statusMessage">
+                    Status: No data retrieved
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Day detail modal -->
+    <div id="dayDetailModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeModal">&times;</span>
+            
+            <div class="day-detail-header">
+                <div class="day-detail-date" id="detailDate">11/15</div>
+                <div class="sleep-quality">
+                    <div class="quality-indicator" id="detailQualityIndicator"></div>
+                    <div class="quality-text" id="detailQualityText">Good</div>
+                </div>
+            </div>
+            
+            <div class="day-detail-summary">
+                <div class="day-detail-item">
+                    <div class="detail-label">Total Sleep</div>
+                    <div class="detail-value" id="detailTotalSleep">7h 30m</div>
+                </div>
+                <div class="day-detail-item">
+                    <div class="detail-label">Deep Sleep</div>
+                    <div class="detail-value" id="detailDeepSleep">1h 45m</div>
+                </div>
+                <div class="day-detail-item">
+                    <div class="detail-label">Sleep Score</div>
+                    <div class="detail-value" id="detailSleepScore">85</div>
+                </div>
+            </div>
+            
+            <h3>Sleep Timeline</h3>
+            <div class="sleep-timeline" id="sleepTimeline">
+                <!-- Timeline hours -->
+                <div class="timeline-hour" style="left: 0%">10 PM</div>
+                <div class="timeline-hour" style="left: 25%">12 AM</div>
+                <div class="timeline-hour" style="left: 50%">2 AM</div>
+                <div class="timeline-hour" style="left: 75%">4 AM</div>
+                <div class="timeline-hour" style="left: 100%">6 AM</div>
+                
+                <!-- Sleep segments will be added dynamically -->
+            </div>
+            
+            <div class="timeline-legend">
+                <div class="legend-item">
+                    <div class="legend-color segment-deep"></div>
+                    <span>Deep Sleep</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color segment-light"></div>
+                    <span>Light Sleep</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color segment-rem"></div>
+                    <span>REM</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color segment-awake"></div>
+                    <span>Awake</span>
+                </div>
+            </div>
+            
+            <div class="day-detail-notes" id="detailNotes">
+                Your sleep was generally good. You had a consistent sleep pattern with minimal interruptions.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 格式化小时和分钟
+        function formatHoursMinutes(hours) {
+            const h = Math.floor(hours);
+            const m = Math.round((hours - h) * 60);
+            return `${h}h ${m}m`;
+        }
+        
+        // 初始化图表，但不加载数据
+        const ctx = document.getElementById('sleepChart').getContext('2d');
+        const sleepChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Sleep Duration',
+                    data: [],
+                    backgroundColor: 'rgba(116, 46, 209, 0.6)',
+                    borderColor: 'rgba(116, 46, 209, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 10,
+                        title: {
+                            display: true,
+                            text: 'Hours'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                onClick: function(event, elements) {
+                    if (elements.length > 0) {
+                        const index = elements[0].index;
+                        // 存储上传的数据
+                        const chartData = this.data;
+                        showDayDetail(index, window.sleepData);
+                    }
+                }
+            }
+        });
+        
+        // 更新睡眠数据显示
+        function updateSleepDisplay(sleepData) {
+            const {
+                totalSleep,
+                deepSleep,
+                lightSleep,
+                remSleep,
+                awakeSleep,
+                sleepScore,
+                sleepQuality
+            } = sleepData;
+
+            document.getElementById('sleepDuration').textContent = formatHoursMinutes(totalSleep);
+            document.getElementById('deepSleep').textContent = formatHoursMinutes(deepSleep);
+            
+            document.getElementById('phaseDeep').style.width = `${Math.round(deepSleep / totalSleep * 100)}%`;
+            document.getElementById('phaseLight').style.width = `${Math.round(lightSleep / totalSleep * 100)}%`;
+            document.getElementById('phaseRem').style.width = `${Math.round(remSleep / totalSleep * 100)}%`;
+            document.getElementById('phaseAwake').style.width = `${Math.round(awakeSleep / totalSleep * 100)}%`;
+            
+            document.getElementById('qualityIndicator').className = 
+                `quality-indicator quality-${sleepQuality.toLowerCase()}`;
+            document.getElementById('qualityText').textContent = sleepQuality;
+            
+            document.getElementById('sleepScore').textContent = sleepScore;
+        }
+
+        // 显示日期详情的函数
+        function showDayDetail(index, data) {
+            const modal = document.getElementById('dayDetailModal');
+            
+            // 更新模态框内容
+            document.getElementById('detailDate').textContent = data.date[index];
+            document.getElementById('detailQualityIndicator').className = 
+                `quality-indicator quality-${data.sleepQuality[index].toLowerCase()}`;
+            document.getElementById('detailQualityText').textContent = data.sleepQuality[index];
+            
+            document.getElementById('detailTotalSleep').textContent = 
+                formatHoursMinutes(data.totalSleep[index]);
+            document.getElementById('detailDeepSleep').textContent = 
+                formatHoursMinutes(data.deepSleep[index]);
+            document.getElementById('detailSleepScore').textContent = data.sleepScore[index];
+            
+            // 生成睡眠阶段时间轴
+            const timeline = document.getElementById('sleepTimeline');
+            // 清除之前的睡眠段
+            const segments = timeline.querySelectorAll('.sleep-segment');
+            segments.forEach(segment => segment.remove());
+            
+            // 计算每个阶段的宽度和位置
+            const totalSleep = data.totalSleep[index];
+            const startPosition = 0; // 假设从晚上10点开始
+            
+            // 添加深度睡眠段
+            if (data.deepSleep[index] > 0) {
+                const deepSegment = document.createElement('div');
+                deepSegment.className = 'sleep-segment segment-deep';
+                deepSegment.style.left = `${startPosition}%`;
+                deepSegment.style.width = `${(data.deepSleep[index] / totalSleep) * 100}%`;
+                timeline.appendChild(deepSegment);
+            }
+            
+            // 添加浅度睡眠段
+            if (data.lightSleep[index] > 0) {
+                const lightSegment = document.createElement('div');
+                lightSegment.className = 'sleep-segment segment-light';
+                lightSegment.style.left = `${(data.deepSleep[index] / totalSleep) * 100}%`;
+                lightSegment.style.width = `${(data.lightSleep[index] / totalSleep) * 100}%`;
+                timeline.appendChild(lightSegment);
+            }
+            
+            // 添加REM睡眠段
+            if (data.remSleep[index] > 0) {
+                const remSegment = document.createElement('div');
+                remSegment.className = 'sleep-segment segment-rem';
+                remSegment.style.left = `${((data.deepSleep[index] + data.lightSleep[index]) / totalSleep) * 100}%`;
+                remSegment.style.width = `${(data.remSleep[index] / totalSleep) * 100}%`;
+                timeline.appendChild(remSegment);
+            }
+            
+            // 添加清醒段
+            if (data.awakeSleep[index] > 0) {
+                const awakeSegment = document.createElement('div');
+                awakeSegment.className = 'sleep-segment segment-awake';
+                awakeSegment.style.left = `${((data.deepSleep[index] + data.lightSleep[index] + data.remSleep[index]) / totalSleep) * 100}%`;
+                awakeSegment.style.width = `${(data.awakeSleep[index] / totalSleep) * 100}%`;
+                timeline.appendChild(awakeSegment);
+            }
+            
+            // 生成睡眠质量描述
+            let sleepNote = '';
+            if (data.sleepQuality[index] === 'Good') {
+                sleepNote = 'Your sleep quality is good. Keep up the good work!';
+            } else if (data.sleepQuality[index] === 'Fair') {
+                sleepNote = 'Your sleep quality is fair. Consider adjusting your sleep schedule to maintain a consistent pattern.';
+            } else {
+                sleepNote = 'Your sleep quality is poor. Check your sleep environment and avoid using electronic devices before bed.';
+            }
+            document.getElementById('detailNotes').textContent = sleepNote;
+            
+            // 显示模态框
+            modal.style.display = 'block';
+        }
+
+        // 修改文件上传函数，存储数据用于详情显示
+        function uploadCSVSleep() {
+            const fileInput = document.getElementById('csvUploadSleep');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a file');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            fetch('/upload_sleep', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                
+                // 存储数据供详情查看使用
+                window.sleepData = data;
+                
+                // 更新图表数据
+                sleepChart.data.labels = data.date;
+                sleepChart.data.datasets[0].data = data.totalSleep;
+                sleepChart.update();
+                
+                // 更新最近一晚的睡眠数据
+                const lastIndex = data.date.length - 1;
+                updateSleepDisplay({
+                    totalSleep: data.totalSleep[lastIndex],
+                    deepSleep: data.deepSleep[lastIndex],
+                    lightSleep: data.lightSleep[lastIndex],
+                    remSleep: data.remSleep[lastIndex],
+                    awakeSleep: data.awakeSleep[lastIndex],
+                    sleepScore: data.sleepScore[lastIndex],
+                    sleepQuality: data.sleepQuality[lastIndex]
+                });
+                
+                document.getElementById('statusMessage').textContent = 
+                    `Data updated (${new Date().toLocaleTimeString()})`;
+            })
+            .catch(error => {
+                alert('Error uploading file: ' + error);
+            });
+        }
+
+        // 关闭模态框的事件监听器
+        document.getElementById('closeModal').addEventListener('click', function() {
+            document.getElementById('dayDetailModal').style.display = 'none';
+        });
+        
+        // 点击模态框外部关闭
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('dayDetailModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

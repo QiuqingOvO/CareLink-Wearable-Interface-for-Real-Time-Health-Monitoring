@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wearable Interface for Real-Time Health Monitoring</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+  <!-- Font Awesome 图标 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    /* 移除 body 的背景设置 */
+    body {
+      margin: 0;
+      position: relative;
+    }
+    /* 添加全屏背景模糊层 */
+    .background-blur {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url("{{ url_for('image', filename='loginBackground.jpg') }}") no-repeat center center fixed;
+      background-size: cover;
+      filter: blur(8px);
+      z-index: -1;
+    }
+    /* 顶部导航栏：半透明背景 */
+    .top-bar {
+      background: rgb(230, 255, 245);
+      color: var(--primary-color);
+      height: 60px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      text-align: center;
+      justify-content: center;
+    }
+    /* 修改登录框样式 */
+    .login-box {
+      background: rgb(230, 255, 245);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    /* 给表单组添加相对定位，便于定位眼睛图标按钮 */
+    .form-group {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    /* 设置眼睛图标按钮样式 */
+    .toggle-password {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #666;
+    }
+        /* 设置眼睛图标按钮样式 */
+        .toggle-password {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #666;
+    }
+    
+    /* Flash 消息样式 */
+    .alert {
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      text-align: center;
+    }
+    
+    .alert-error {
+      background-color: #ffe6e6;
+      color: #cc0000;
+      border: 1px solid #ffcccc;
+    }
+    
+    .alert-success {
+      background-color: #e6ffe6;
+      color: #006600;
+      border: 1px solid #ccffcc;
+    }
+  </style>
+</head>
+<body>
+  <!-- 添加全屏背景模糊层 -->
+  <div class="background-blur"></div>
+  <div class="page-wrapper">
+    <header class="top-bar">
+      <h1><i class="fas fa-heartbeat"></i> CareLink — Health Monitoring System</h1>
+    </header>
+    <div class="page-content">
+      <div class="login-container">
+        <div class="login-box">
+
+          <!-- 添加 Flash 消息显示区域 -->
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
+
+          <div class="login-header">
+            <i class="fas fa-user-circle"></i>
+            <h2>Welcome Back</h2>
+            <p>Log in to enjoy the service</p>
+          </div>
+          <form action="{{ url_for('login') }}" method="POST" class="login-form">
+            <div class="form-group">
+              <i class="fas fa-user"></i>
+              <input type="text" name="username" placeholder="Username" required>
+            </div>
+            <div class="form-group">
+              <i class="fas fa-lock"></i>
+              <!-- 密码输入框增加 id -->
+              <input id="passwordInput" type="password" name="password" placeholder="Password" required>
+              <!-- 眼睛图标按钮 -->
+              <span class="toggle-password" onclick="togglePasswordVisibility()">
+                <i id="toggleIcon" class="fas fa-eye"></i>
+              </span>
+            </div>
+            <div class="form-buttons">
+              <button type="submit" class="btn login-btn">
+                <i class="fas fa-sign-in-alt"></i> Login
+              </button>
+              <button type="button" class="btn register-btn" onclick="window.location.href='{{ url_for('register') }}'">
+                <i class="fas fa-user-plus"></i> Register
+              </button>
+            </div>
+            <!-- 新增忘记密码按钮 -->
+            <div class="form-buttons" style="margin-top: 1rem;">
+              <button type="button" class="btn register-btn" onclick="window.location.href='{{ url_for('forget') }}'">
+                <i class="fas fa-question-circle"></i> Forget password
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    function togglePasswordVisibility(){
+      var passwordInput = document.getElementById("passwordInput");
+      var toggleIcon = document.getElementById("toggleIcon");
+      if(passwordInput.type === "password"){
+        passwordInput.type = "text";
+        toggleIcon.classList.remove("fa-eye");
+        toggleIcon.classList.add("fa-eye-slash");
+      } else {
+        passwordInput.type = "password";
+        toggleIcon.classList.remove("fa-eye-slash");
+        toggleIcon.classList.add("fa-eye");
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthCare - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+
+<body>
+    <!-- 顶部导航栏 -->
+    <header class="top-bar">
+        <div class="top-bar-content">
+            <button class="back-btn" onclick="window.location.href='{{ url_for('login') }}'">
+                <span>←</span> Back
+            </button>
+            <h1>CareLink — Wearable Interface for Real-Time Health Monitoring</h1>
+        </div>
+    </header>
+
+    <!-- 仪表盘容器 -->
+    <div class="dashboard-container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="{{ url_for('connect') }}" class="nav-link">
+                        <span class="nav-icon">🔗</span> Connect the Bracelet
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('heart_rate') }}" class="nav-link">
+                        <span class="nav-icon">❤️</span> Heart Rate Monitoring
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('steps') }}" class="nav-link">
+                        <span class="nav-icon">👣</span> Steps Counting
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('sleep') }}" class="nav-link">
+                        <span class="nav-icon">😴</span> Sleep Monitoring
+                    </a>
+                </li>
+                <!-- 新增 AI Chat 菜单项 -->
+                <li class="nav-item">
+                    <a href="{{ url_for('chat') }}" class="nav-link">
+                        <span class="nav-icon">💬</span> AI Chat
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 主要内容区域 -->
+        <div class="main-content">
+            <div class="welcome-message">
+                <h2>Welcome to the Health Monitoring Dashboard</h2>
+                <p>Please select the left option to view your health data.</p>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

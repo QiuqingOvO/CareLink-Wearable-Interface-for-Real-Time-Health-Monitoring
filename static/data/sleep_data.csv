@@ -1,0 +1,8 @@
+date,totalSleep,deepSleep,lightSleep,remSleep,awakeSleep,sleepScore,sleepQuality
+5/20,7.5,1.5,4.0,1.0,0.0,85,Good
+5/21,6.8,1.2,3.5,1.0,1.1,75,Fair
+5/22,8.0,2.0,4.5,1.0,0.5,90,Good
+5/23,6.0,1.0,3.0,1.0,1.0,65,Poor
+5/24,7.2,1.4,3.8,1.0,1.0,80,Fair
+5/25,7.8,1.6,4.0,1.0,1.2,85,Good
+5/26,6.5,1.3,3.5,0.8,1.4,70,Fair
